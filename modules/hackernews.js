@@ -1,14 +1,25 @@
-const baseUrl = "https://hacker-news.firebaseio.com/v0/"
+const baseUrl = "https://hacker-news.firebaseio.com/v0"
 
 const request = async (url, method="GET", silent=false) => {
+  const fullUrl = `${baseUrl}/${url}.json`
   if (!silent)
-    console.log(`--> Making ${method} request to '${url}'`)
-  const response = await fetch(`${baseUrl}/${url}.json`, {
-    method: method
-  })
-  if (!silent)
-  console.log(`<-- ${response.status}`)
-  return response
+    console.log(`--> Making ${method} request to '${fullUrl}'`)
+
+  let response
+
+  try {
+    response = await fetch(fullUrl, {
+      method: method
+    })
+
+    if (!silent)
+      console.log(`<-- ${response.status}`)
+  } catch (e) {
+    console.error(`Request failed! Exception below:`)
+    console.log(e)
+  }
+
+  return response ? response : {}
 }
 
 const getStory = async (id, silent=false) => await request(`item/${id}`, "GET", silent)
