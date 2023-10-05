@@ -10,6 +10,7 @@ const fetchTopStories = async () => {
   console.log(`Ids for the top stories have been fetched, found ${ids.length} ids`)
   const stories = await getAllTopStories(ids)
 
+  data.topStories = []
   stories.forEach(story => {
     data.topStories.push(story)
   })
