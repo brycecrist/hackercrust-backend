@@ -32,7 +32,7 @@ app.listen(port, () => {
   console.log(`Server listening on port: ${port}`)
 })
 
-cron.schedule('*/20 * * * * *', async () => {
+cron.schedule('*/30 * * * * *', async () => {
   console.log("Cron job running...")
   await fetchTopStories()
 })
