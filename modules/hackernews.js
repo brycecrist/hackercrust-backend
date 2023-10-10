@@ -36,7 +36,6 @@ const getAllTopStories = async (ids) => {
     const story = await getStory(ids[i], true)
     stories.push(await story.json())
   }
-  console.log("Complete")
 
   return stories
 }

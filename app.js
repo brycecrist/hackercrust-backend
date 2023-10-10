@@ -41,12 +41,38 @@ app.get("/topstories", async (req, res) => {
 
 app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (req, res) => {
   console.log("Request to /topstories")
-  console.log(req.params)
-  res.send(data.topStories)
+
+  const filters = {
+    currentPage: req.params.page,
+    amount: req.params.amount,
+    increaseBy: req.params.increaseBy
+  }
+
+  let stories = []
+
+  let minStoriesToGet = (filters.currentPage - 1) * filters.increaseBy
+  const maxStoriesToGet = filters.currentPage * filters.increaseBy
+
+  for (let i = minStoriesToGet; i < maxStoriesToGet; i++) {
+    const story = await data.topStories[i]
+    story["returnId"] = i
+    stories.push(story)
+  }
+
+  console.log(`Returning stories ${minStoriesToGet} to ${maxStoriesToGet}.`)
+  console.log(`Number of stories: ${stories.length}`)
+
+  res.send(stories)
 })
 
-cron.schedule('1 * * * *', async () => {
+
+const cronJobMinutes = 1
+cron.schedule(`*/${cronJobMinutes} * * * *`, async () => {
   console.log("Cron job running...")
-  if (topStoriesHaveBeenFetched)
+  if (topStoriesHaveBeenFetched) {
+    console.log("Fetching stories...")
     await fetchTopStories()
+  } else {
+    console.log(`Original fetch has not ran; retry in ${cronJobMinutes} minute(s).`)
+  }
 })
