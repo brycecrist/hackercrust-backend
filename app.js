@@ -7,19 +7,27 @@ const app = express()
 const port = process.env.PORT || 5000
 
 let topStoriesHaveBeenFetched = false
+let cronJobIsRunning = false
 
-const fetchTopStories = async () => {
-  topStoriesHaveBeenFetched = false
-
-  const request = await getTopStoryIds()
-  const ids = await request.json()
+const fetchTopStories = async (ids, compareAgainstState=true) => {
   console.log(`Ids for the top stories have been fetched, found ${ids.length} ids\n`)
-  const stories = await getAllTopStories(ids)
+  const stories = await getAllTopStories(ids, compareAgainstState)
 
-  data.topStories = []
+  console.log(data.topStories.length)
+
+  if (data.topStories.length > 0 && compareAgainstState) {
+    for (let i = 0; i < stories.length; i++) {
+      // getAllTopStories only returns new stories, so we can pop the old ones
+      data.topStories.pop()
+    }
+  }
+
+  console.log(data.topStories.length)
+
   stories.forEach(story => {
-    data.topStories.push(story)
+    data.topStories.push(story) // Add new story
   })
+  console.log(data.topStories.length)
 
   topStoriesHaveBeenFetched = true
   console.log(`Top stories have been updated in state; items stored: ${data.topStories.length}`)
@@ -27,20 +35,22 @@ const fetchTopStories = async () => {
 
 const corsOptions = {
   origin:'*',
-  credentials:true,            //access-control-allow-credentials:true
+  credentials:true,
   optionSuccessStatus:200,
 }
 
 app.use(cors(corsOptions))
 app.use(express.json())
-
 app.listen(port, async () => {
   console.log(`Server listening on port: ${port}`)
-  await fetchTopStories()
+  const request = await getTopStoryIds()
+  data.topStoryIds = await request.json()
+
+  await fetchTopStories(data.topStoryIds, false)
 })
 
 app.get("/", (req, res) => {
-  res.send("Hello!")
+  res.send("Hacker Crust API is up and running.")
 })
 
 app.get("/storyids", async(req, res) => {
@@ -79,15 +89,17 @@ app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (r
   res.send(stories)
 })
 
-
-const cronJobMinutes = 10
+const cronJobMinutes = 1
 
 cron.schedule(`*/${cronJobMinutes} * * * *`, async () => {
-  console.log("Cron job running...")
-  if (topStoriesHaveBeenFetched) {
-    console.log("Fetching stories...")
-    await fetchTopStories()
+  console.log("Cron")
+  if (topStoriesHaveBeenFetched && !cronJobIsRunning) {
+    cronJobIsRunning = true
+    console.log("Cron job running.\n Fetching stories...")
+    const request = await getTopStoryIds()
+    await fetchTopStories(await request.json())
+    cronJobIsRunning = false
   } else {
-    console.log(`Original fetch has not ran; retry in ${cronJobMinutes} minute(s).`)
+    console.log(`Original fetch has not ran or Cron job has not finished; retry in ${cronJobMinutes} minute(s).`)
   }
 })

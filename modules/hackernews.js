@@ -1,3 +1,4 @@
+const {data} = require("./data");
 const baseUrl = "https://hacker-news.firebaseio.com/v0"
 
 const request = async (url, method="GET", silent=false) => {
@@ -26,16 +27,26 @@ const getStory = async (id, silent=true) => await request(`item/${id}`, "GET", s
 
 const getTopStoryIds = async () => await request("topstories")
 
-const getAllTopStories = async (ids) => {
+const getAllTopStories = async (ids, compareAgainstState=true) => {
   const stories = []
   console.log("Getting all stories by id...")
   for (let i = 0; i < ids.length; i++) {
-    const story = await getStory(ids[i], true)
-    if (i % 50 === 0 && i !== 0)
-      console.log(`${(i / ids.length) * 100}%`)
+    let story
+    const shouldGetStory = ((compareAgainstState && !data.topStoryIds.includes(ids[i])) || !compareAgainstState)
+
+    if (shouldGetStory)
+      story = await getStory(ids[i], true)
+    else
+      continue
+
+    if (shouldGetStory && compareAgainstState)
+      console.log(`Found new story: ${ids[i]}`)
 
     if (i === 0)
       console.log("0%")
+
+    if (i % 50 === 0 && i !== 0)
+      console.log(`${(i / ids.length) * 100}%`)
 
     stories.push(await story.json())
   }

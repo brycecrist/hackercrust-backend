@@ -1,4 +1,5 @@
 const data = {
+  topStoryIds: [],
   topStories: []
 }
 
