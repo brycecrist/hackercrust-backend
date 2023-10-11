@@ -10,8 +10,9 @@ let topStoriesHaveBeenFetched = false
 const fetchTopStories = async () => {
   topStoriesHaveBeenFetched = false
 
-  const ids = await getTopStoryIds()
-  console.log(`Ids for the top stories have been fetched, found ${ids.length} ids`)
+  const request = await getTopStoryIds()
+  const ids = await request.json()
+  console.log(`Ids for the top stories have been fetched, found ${ids.length} ids\n`)
   const stories = await getAllTopStories(ids)
 
   data.topStories = []
@@ -34,6 +35,11 @@ app.get("/", (req, res) => {
   res.send("Hello!")
 })
 
+app.get("/storyids", async(req, res) => {
+  const request = await getTopStoryIds()
+  res.send(await request.json())
+})
+
 app.get("/topstories", async (req, res) => {
   console.log("Request to /topstories")
   res.send(data.topStories)
@@ -41,7 +47,7 @@ app.get("/topstories", async (req, res) => {
 
 app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (req, res) => {
   console.log("Request to /topstories")
-
+  console.log(req.params)
   const filters = {
     currentPage: req.params.page,
     amount: req.params.amount,
@@ -66,7 +72,8 @@ app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (r
 })
 
 
-const cronJobMinutes = 1
+const cronJobMinutes = 10
+
 cron.schedule(`*/${cronJobMinutes} * * * *`, async () => {
   console.log("Cron job running...")
   if (topStoriesHaveBeenFetched) {
