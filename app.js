@@ -3,7 +3,7 @@ const cron = require('node-cron')
 const {getTopStoryIds, getNumberOfStories, getAllTopStories} = require("./modules/hackernews");
 const {data} = require("./modules/data");
 const app = express()
-const port = 5000
+const port = process.env.PORT || 5000
 
 let topStoriesHaveBeenFetched = false
 
