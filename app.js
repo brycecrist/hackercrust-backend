@@ -1,5 +1,6 @@
 const express = require('express')
 const cron = require('node-cron')
+const cors=require("cors")
 const {getTopStoryIds, getNumberOfStories, getAllTopStories} = require("./modules/hackernews");
 const {data} = require("./modules/data");
 const app = express()
@@ -24,6 +25,13 @@ const fetchTopStories = async () => {
   console.log(`Top stories have been updated in state; items stored: ${data.topStories.length}`)
 }
 
+const corsOptions = {
+  origin:'*',
+  credentials:true,            //access-control-allow-credentials:true
+  optionSuccessStatus:200,
+}
+
+app.use(cors(corsOptions))
 app.use(express.json())
 
 app.listen(port, async () => {

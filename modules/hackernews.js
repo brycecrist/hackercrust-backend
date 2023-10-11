@@ -22,7 +22,7 @@ const request = async (url, method="GET", silent=false) => {
   return response ? response : {}
 }
 
-const getStory = async (id) => await request(`item/${id}`, "GET")
+const getStory = async (id, silent=true) => await request(`item/${id}`, "GET", silent)
 
 const getTopStoryIds = async () => await request("topstories")
 
