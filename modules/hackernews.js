@@ -23,19 +23,19 @@ const request = async (url, method="GET", silent=false) => {
   return response ? response : {}
 }
 
-const getStory = async (id, silent=true) => await request(`item/${id}`, "GET", silent)
+const getItem = async (id, silent=true) => await request(`item/${id}`, "GET", silent)
 
 const getTopStoryIds = async () => await request("topstories")
 
-const getAllTopStories = async (ids, compareAgainstState=true) => {
+const getAllTopStories = async (ids, compareAgainstState=true, amount=ids.length) => {
   const stories = []
   console.log("Getting all stories by id...")
-  for (let i = 0; i < ids.length; i++) {
+  for (let i = 0; i < amount; i++) {
     let story
     const shouldGetStory = ((compareAgainstState && !data.topStoryIds.includes(ids[i])) || !compareAgainstState)
 
     if (shouldGetStory)
-      story = await getStory(ids[i], true)
+      story = await getItem(ids[i], true)
     else
       continue
 
@@ -55,18 +55,14 @@ const getAllTopStories = async (ids, compareAgainstState=true) => {
   return stories
 }
 
-const getNumberOfStories = async (ids, filters) => {
-  let stories = []
-
-  let minStoriesToGet = (filters.page - 1) * filters.increaseBy
-  const maxStoriesToGet = filters.page * filters.increaseBy
-
-  for (let i = minStoriesToGet; i < maxStoriesToGet; i++) {
-    const story = await getStory(ids[i])
-    stories.push(await story.json())
+const getComments = async (kids) => {
+  const comments = []
+  for (let i = 0; i < kids.length; i++) {
+    const response = await getItem(kids[i])
+    comments.push(await response.json())
   }
 
-  return stories
+  return comments
 }
 
-module.exports = {getTopStoryIds, getNumberOfStories, getAllTopStories}
+module.exports = {getTopStoryIds, getAllTopStories, getItem, getComments}
