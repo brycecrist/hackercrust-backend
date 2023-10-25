@@ -1,3 +1,4 @@
+const {data} = require("./data");
 const baseUrl = "https://hacker-news.firebaseio.com/v0"
 
 const request = async (url, method="GET", silent=false) => {
@@ -22,20 +23,30 @@ const request = async (url, method="GET", silent=false) => {
   return response ? response : {}
 }
 
-const getStory = async (id) => await request(`item/${id}`, "GET")
+const getItem = async (id, silent=true) => await request(`item/${id}`, "GET", silent)
 
 const getTopStoryIds = async () => await request("topstories")
 
-const getAllTopStories = async (ids) => {
+const getAllTopStories = async (ids, compareAgainstState=true, amount=ids.length) => {
   const stories = []
   console.log("Getting all stories by id...")
-  for (let i = 0; i < ids.length; i++) {
-    const story = await getStory(ids[i], true)
-    if (i % 50 === 0 && i !== 0)
-      console.log(`${(i / ids.length) * 100}%`)
+  for (let i = 0; i < amount; i++) {
+    let story
+    const shouldGetStory = ((compareAgainstState && !data.topStoryIds.includes(ids[i])) || !compareAgainstState)
+
+    if (shouldGetStory)
+      story = await getItem(ids[i], true)
+    else
+      continue
+
+    if (shouldGetStory && compareAgainstState)
+      console.log(`Found new story: ${ids[i]}`)
 
     if (i === 0)
       console.log("0%")
+
+    if (i % 50 === 0 && i !== 0)
+      console.log(`${(i / ids.length) * 100}%`)
 
     stories.push(await story.json())
   }
@@ -44,18 +55,14 @@ const getAllTopStories = async (ids) => {
   return stories
 }
 
-const getNumberOfStories = async (ids, filters) => {
-  let stories = []
-
-  let minStoriesToGet = (filters.page - 1) * filters.increaseBy
-  const maxStoriesToGet = filters.page * filters.increaseBy
-
-  for (let i = minStoriesToGet; i < maxStoriesToGet; i++) {
-    const story = await getStory(ids[i])
-    stories.push(await story.json())
+const getComments = async (kids) => {
+  const comments = []
+  for (let i = 0; i < kids.length; i++) {
+    const response = await getItem(kids[i])
+    comments.push(await response.json())
   }
 
-  return stories
+  return comments
 }
 
-module.exports = {getTopStoryIds, getNumberOfStories, getAllTopStories}
+module.exports = {getTopStoryIds, getAllTopStories, getItem, getComments}
