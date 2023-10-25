@@ -46,7 +46,7 @@ app.listen(port, async () => {
   const request = await getTopStoryIds()
   data.topStoryIds = await request.json()
 
-  await fetchTopStories(data.topStoryIds, false, 25)
+  await fetchTopStories(data.topStoryIds, false)
 })
 
 app.get("/", (req, res) => {
@@ -86,7 +86,13 @@ app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (r
 
   for (let i = minStoriesToGet; i < maxStoriesToGet; i++) {
     const story = await data.topStories[i]
-    story["returnId"] = i
+    if (!story)
+      continue
+
+    if (!story.returnId)
+      story.returnId = 0
+
+    story.returnId = i
     stories.push(story)
   }
 
