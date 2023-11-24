@@ -49,7 +49,17 @@ const fetchTopStories = async (ids, compareAgainstState=true, amount=ids.length)
 
     if (!data.topStories.includes(stories[i])) {
       console.log(`${chalk.green("Pushing story")}: ${ellipsis(stories[i].title, 50)}`)
+
       data.topStories.push(stories[i]) // Add new story
+
+      // The typical maximum of stories; if more that the max, pop.
+      if (data.topStories.length > 500) {
+        const archivedStory = data.topStories[data.topStories.length - 1]
+        console.log(`${chalk.yellow("Popping story from memory")}: ${ellipsis(archivedStory.title, 50)}`)
+
+        data.archives.push(archivedStory)
+        data.topStories.pop()
+      }
     } else {
       console.log(chalk.red(`Cannot add story as it is already stored]: ${stories[i].id}`))
     }
@@ -74,7 +84,7 @@ app.listen(port, async () => {
   const request = await getTopStoryIds()
   data.topStoryIds = await request.json()
 
-  await fetchTopStories(data.topStoryIds, false, 25)
+  await fetchTopStories(data.topStoryIds, false)
 
   console.log(`The ${chalk.cyan("HackerCrust")} backend is ready for use.`)
 })
@@ -139,11 +149,6 @@ app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (r
 
   console.log(`Returning stories ${minStoriesToGet} to ${maxStoriesToGet}.`)
   console.log(`Number of stories: ${stories.length}`)
-
-  stories.forEach(story => {
-    const convertedTime = epochToDay(story.time)
-    console.log(`${convertedTime.toLocaleDateString()} ${convertedTime.toLocaleTimeString()}`)
-  })
 
   res.send(stories)
 })

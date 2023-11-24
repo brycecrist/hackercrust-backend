@@ -42,13 +42,13 @@ const getAllTopStories = async (ids, compareAgainstState=true, amount=ids.length
       continue
 
     if (shouldGetStory && compareAgainstState)
-      console.log(`Found new story: ${ids[i]}`)
+      console.log(`Found new story id: ${ids[i]}`)
 
     if (i === 0)
       console.log(chalk.red("0%"))
 
     if (i % 50 === 0 && i !== 0)
-      console.log(chalk.green(`${Math.floor((i / ids.length) * 100)}%`))
+      console.log(chalk.yellow(`${Math.floor((i / ids.length) * 100)}%`))
 
     stories.push(await story.json())
   }
