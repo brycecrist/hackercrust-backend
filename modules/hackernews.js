@@ -1,4 +1,5 @@
 const {data} = require("./data");
+const {getLinkPreview} = require("link-preview-js")
 const baseUrl = "https://hacker-news.firebaseio.com/v0"
 
 const request = async (url, method="GET", silent=false) => {
@@ -46,7 +47,7 @@ const getAllTopStories = async (ids, compareAgainstState=true, amount=ids.length
       console.log("0%")
 
     if (i % 50 === 0 && i !== 0)
-      console.log(`${(i / ids.length) * 100}%`)
+      console.log(`${Math.floor((i / ids.length) * 100)}%`)
 
     stories.push(await story.json())
   }
@@ -57,12 +58,18 @@ const getAllTopStories = async (ids, compareAgainstState=true, amount=ids.length
 
 const getComments = async (kids) => {
   const comments = []
-  for (let i = 0; i < kids.length; i++) {
-    const response = await getItem(kids[i])
-    comments.push(await response.json())
+  if (kids) {
+    for (let i = 0; i < kids.length; i++) {
+      const response = await getItem(kids[i])
+      comments.push(await response.json())
+    }
   }
 
   return comments
 }
 
-module.exports = {getTopStoryIds, getAllTopStories, getItem, getComments}
+const getImagePreviewForStory = async (url) => {
+  return await getLinkPreview(url)
+}
+
+module.exports = {getImagePreviewForStory, getTopStoryIds, getAllTopStories, getItem, getComments}
