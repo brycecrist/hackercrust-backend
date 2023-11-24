@@ -1,6 +1,7 @@
 const data = {
   topStoryIds: [],
-  topStories: []
+  topStories: [],
+  archives: []
 }
 
 module.exports = {data}

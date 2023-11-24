@@ -1,6 +1,6 @@
 {
   "name": "hackercrust-backend",
-  "version": "1.0.0",
+  "version": "1.1.3",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/brycecrist/hackercrust-backend#readme",
   "dependencies": {
+    "chalk": "^4.1.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "link-preview-js": "^3.0.5",
