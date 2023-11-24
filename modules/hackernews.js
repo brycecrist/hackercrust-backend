@@ -1,5 +1,6 @@
 const {data} = require("./data");
 const {getLinkPreview} = require("link-preview-js")
+const chalk = require("chalk");
 const baseUrl = "https://hacker-news.firebaseio.com/v0"
 
 const request = async (url, method="GET", silent=false) => {
@@ -44,15 +45,15 @@ const getAllTopStories = async (ids, compareAgainstState=true, amount=ids.length
       console.log(`Found new story: ${ids[i]}`)
 
     if (i === 0)
-      console.log("0%")
+      console.log(chalk.red("0%"))
 
     if (i % 50 === 0 && i !== 0)
-      console.log(`${Math.floor((i / ids.length) * 100)}%`)
+      console.log(chalk.green(`${Math.floor((i / ids.length) * 100)}%`))
 
     stories.push(await story.json())
   }
 
-  console.log("100%... all stories have been retrieved\n")
+  console.log(`${chalk.green("100%")}... all stories have been retrieved\n`)
   return stories
 }
 
