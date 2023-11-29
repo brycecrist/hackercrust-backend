@@ -28,11 +28,19 @@ const fetchPreview = async (story, silent=true) => {
   return story
 }
 
-const epochToDay = (epochTime) => {
-  const date = new Date(0)
-  date.setUTCSeconds(epochTime)
-  return date
+/*
+* TODO
+const fetchAllComments = async (item, comments={}) => {
+  if (item.kids && item.kids.length > 0) {
+    comments[item.id] = await getComments(item.kids)
+    comments[item.id].forEach(i => {
+      fetchAllComments(i, )
+    })
+  }
+
+  return comments
 }
+*/
 
 const fetchTopStories = async (ids, compareAgainstState=true, amount=ids.length) => {
   console.log(`Ids for the top stories have been fetched, found ${chalk.green(ids.length)} ids\n`)
@@ -55,6 +63,9 @@ const fetchTopStories = async (ids, compareAgainstState=true, amount=ids.length)
       // The typical maximum of stories; if more that the max, pop.
       if (data.topStories.length > 500) {
         const archivedStory = data.topStories[data.topStories.length - 1]
+        if (data.topStories[data.topStories.length - 1].id === stories[i].id)
+          continue
+
         console.log(`${chalk.yellow("Popping story from memory")}: ${ellipsis(archivedStory.title, 50)}`)
 
         data.archives.push(archivedStory)
@@ -84,7 +95,7 @@ app.listen(port, async () => {
   const request = await getTopStoryIds()
   data.topStoryIds = await request.json()
 
-  await fetchTopStories(data.topStoryIds, false)
+  await fetchTopStories(data.topStoryIds, false, 100)
 
   console.log(`The ${chalk.cyan("HackerCrust")} backend is ready for use.`)
 })
@@ -153,23 +164,53 @@ app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (r
   res.send(stories)
 })
 
-cron.schedule(`30 * * * *`, async () => {
-  console.log("Starting CRON job & fetching more stories...")
-  if (topStoriesHaveBeenFetched && !cronJobIsRunning) {
-    cronJobIsRunning = true
-    console.log("Cron job running.\n Fetching stories...")
+cron.schedule(`*/1 * * * *`, async () => {
+  console.log("Starting CRON job...")
+
+  const fetchNewStories = async () => {
+    console.log("Fetching new stories...")
     const request = await getTopStoryIds()
     const stories = await request.json()
 
-    // WHY?? I don't remember
     if (stories === []) {
-      cronJobIsRunning = false
       return
     }
 
     await fetchTopStories(stories, true)
+    console.log("Finished fetching stories.")
+  }
+
+  const refreshStories = async () => {
+    console.log("Refreshing stories...")
+    if (topStoriesHaveBeenFetched) {
+      const stories = []
+      for (let i = 0; i < data.topStories.length; i++) {
+        stories.push(await getItem(data.topStories[i].id))
+        console.log(`${chalk.green("Updating story")}: ${ellipsis(data.topStories[i].title, 50)}`)
+      }
+
+      data.topStories = stories
+    }
+
+    console.log("All stories have been updated.")
+  }
+
+  // Start CRON job logic
+  if (!cronJobIsRunning) {
+    console.log("Cron job running...")
+
+    if (!topStoriesHaveBeenFetched) {
+      console.log(`Original fetch has Not ran... exiting current cron job.`)
+      return
+    }
+
+    cronJobIsRunning = true
+
+    await refreshStories()
+    await fetchNewStories()
+
     cronJobIsRunning = false
   } else {
-    console.log(`Original fetch has not ran or Cron job has not finished... exiting job.`)
-  }
+    console.log("Cron job is currently running... exiting current cron job.")
+}
 })
