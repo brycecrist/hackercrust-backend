@@ -3,7 +3,7 @@ const {getLinkPreview} = require("link-preview-js")
 const chalk = require("chalk");
 const baseUrl = "https://hacker-news.firebaseio.com/v0"
 
-const request = async (url, method="GET", silent=false) => {
+const request = async (url, method="GET", silent=true) => {
   const fullUrl = `${baseUrl}/${url}.json`
   if (!silent)
     console.log(`--> '${fullUrl}'`)
@@ -25,7 +25,9 @@ const request = async (url, method="GET", silent=false) => {
   return response ? response : {}
 }
 
-const getItem = async (id, silent=true) => await request(`item/${id}`, "GET", silent)
+const getItem = async (id, silent) => {
+  return await request(`item/${id}`, "GET", silent)
+}
 
 const getTopStoryIds = async () => await request("topstories")
 
@@ -37,9 +39,10 @@ const getAllTopStories = async (ids, compareAgainstState=true, amount=ids.length
     const shouldGetStory = ((compareAgainstState && !data.topStoryIds.includes(ids[i])) || !compareAgainstState)
 
     if (shouldGetStory)
-      story = await getItem(ids[i], true)
+      story = await getItem(ids[i])
     else
       continue
+
 
     if (shouldGetStory && compareAgainstState)
       console.log(`Found new story id: ${ids[i]}`)

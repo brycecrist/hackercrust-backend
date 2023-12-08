@@ -2,7 +2,7 @@ const express = require('express')
 const cron = require('node-cron')
 const cors=require("cors")
 const {getTopStoryIds, getAllTopStories, getItem, getComments, getImagePreviewForStory} = require("./modules/hackernews");
-const {data} = require("./modules/data");
+const {data, getTopStories, getTopStoriesFromData} = require("./modules/data");
 const {ellipsis, removeHttp} = require("./utilities/string");
 const chalk = require("chalk");
 
@@ -13,7 +13,7 @@ let topStoriesHaveBeenFetched = false
 let cronJobIsRunning = false
 
 const fetchPreview = async (story, silent=true) => {
-  if (story.url) {
+  if (story && story.url) {
     const formattedUrl = removeHttp(ellipsis(story.url, 50))
     if (!silent)
       console.log(`Fetching preview for url: ${formattedUrl}`)
@@ -44,21 +44,28 @@ const fetchAllComments = async (item, comments={}) => {
 
 const fetchTopStories = async (ids, compareAgainstState=true, amount=ids.length) => {
   console.log(`Ids for the top stories have been fetched, found ${chalk.green(ids.length)} ids\n`)
+  console.log(amount)
   const stories = await getAllTopStories(ids, compareAgainstState, amount)
+
+  // No stories were retrieved, because `shouldGetStory` in the hackernews.js `getAllTopStories` function returned false
+  if (!stories.length > 0) {
+    console.log("No stories were collected.")
+    return
+  }
 
   console.log(`Collected ${chalk.green(stories.length)} stories. Processing...`)
   console.log('--------------------------------------------------------------------')
 
-  const sortedStories = stories.sort((x, y) => y.time - x.time)
+  const sortedStories = [...new Set(stories.sort((x, y) => y.time - x.time))]
 
   for (let i = 0; i < sortedStories.length; i++) {
-    if (stories[i].url)
-      stories[i] = await fetchPreview(stories[i])
+    if (sortedStories[i].url)
+      sortedStories[i] = await fetchPreview(stories[i])
 
-    if (!data.topStories.includes(stories[i])) {
-      console.log(`${chalk.green("Pushing story")}: ${ellipsis(stories[i].title, 50)}`)
+    if (!data.topStories.includes(sortedStories[i])) {
+      console.log(`${chalk.green("Pushing story")}: ${ellipsis(sortedStories[i].title, 50)}`)
 
-      data.topStories.push(stories[i]) // Add new story
+      data.topStories.push(sortedStories[i]) // Add new story
 
       // The typical maximum of stories; if more that the max, pop.
       if (data.topStories.length > 500) {
@@ -95,7 +102,7 @@ app.listen(port, async () => {
   const request = await getTopStoryIds()
   data.topStoryIds = await request.json()
 
-  await fetchTopStories(data.topStoryIds, false, 100)
+  await fetchTopStories(data.topStoryIds, false, 5)
 
   console.log(`The ${chalk.cyan("HackerCrust")} backend is ready for use.`)
 })
@@ -164,7 +171,7 @@ app.get("/topstories/page/:page/amount/:amount/increaseBy/:increaseBy", async (r
   res.send(stories)
 })
 
-cron.schedule(`*/1 * * * *`, async () => {
+cron.schedule(`*/5 * * * * *`, async () => {
   console.log("Starting CRON job...")
 
   const fetchNewStories = async () => {
@@ -182,16 +189,35 @@ cron.schedule(`*/1 * * * *`, async () => {
 
   const refreshStories = async () => {
     console.log("Refreshing stories...")
-    if (topStoriesHaveBeenFetched) {
-      const stories = []
-      for (let i = 0; i < data.topStories.length; i++) {
-        stories.push(await getItem(data.topStories[i].id))
-        console.log(`${chalk.green("Updating story")}: ${ellipsis(data.topStories[i].title, 50)}`)
-      }
+    let stories = []
+    console.log(`Number of stories currently in memory: ${data.topStories.length}`)
+    console.log(`First id: ${data.topStories[0].id}`)
+    console.log("Onto the loop!")
 
-      data.topStories = stories
+    for (let i = 0; i < data.topStories.length; i++) {
+      console.log(`Index: ${i}`)
+      const response = await getItem(data.topStories[i].id, false)
+      const story = await response.json()
+      stories.push(story)
     }
 
+    console.log("Got items... consolidating data")
+
+    stories = stories.filter(story => {
+      for (let i = 0; i < data.topStories.length; i++) {
+        const storyFromData = data.topStoryIds[i]
+        if (storyFromData.id === story.id) {
+          if (storyFromData.descendants !== story.descendants || storyFromData.score !== story.score)
+            return story
+        }
+      }
+    })
+    console.log(stories)
+
+    data.topStories = data.topStories.concat(stories)
+    console.log("Collected stories... showing the first index and the length")
+    console.log(data.topStories.length)
+    console.log(data.topStories[0])
     console.log("All stories have been updated.")
   }
 
@@ -200,7 +226,7 @@ cron.schedule(`*/1 * * * *`, async () => {
     console.log("Cron job running...")
 
     if (!topStoriesHaveBeenFetched) {
-      console.log(`Original fetch has Not ran... exiting current cron job.`)
+      console.log(`Original fetch has not ran... exiting current cron job.`)
       return
     }
 
@@ -212,5 +238,5 @@ cron.schedule(`*/1 * * * *`, async () => {
     cronJobIsRunning = false
   } else {
     console.log("Cron job is currently running... exiting current cron job.")
-}
+  }
 })
